@@ -24,13 +24,15 @@ public class USMap extends Application {
     }
     @Override
     public void start(Stage stage) {
-
-        int MAP_WIDTH = 1300;
-        int MAP_HEIGHT = 600;
-        double SCALE = 20.0;
-        double MAX_LATITUDE = 50.0;
-        double MIN_LONGITUDE = -130;
-        int FONT_SIZE = 10;
+        
+        final String STATE_ABBV_FILE = "states.txt";
+        final String MAP_FILE = "usmap.txt";
+        final int MAP_WIDTH = 1300;
+        final int MAP_HEIGHT = 600;
+        final double SCALE = 20.0;
+        final double MAX_LATITUDE = 50.0;
+        final double MIN_LONGITUDE = -130;
+        final int FONT_SIZE = 10;
 
         Pane pane = new Pane();
         Scene scene = new Scene(pane, MAP_WIDTH, MAP_HEIGHT);
@@ -38,8 +40,8 @@ public class USMap extends Application {
         stage.setScene(scene);
         stage.show();
 
-        HashMap<String, ArrayList<double[]>> statePolygonCoordinates = getStatePolygonCoordinates();
-        HashMap<String, String> stateAbbreviations = getStateAbbreviations();
+        HashMap<String, ArrayList<double[]>> statePolygonCoordinates = getStatePolygonCoordinates(MAP_FILE);
+        HashMap<String, String> stateAbbreviations = getStateAbbreviations(STATE_ABBV_FILE);
 
         statePolygonCoordinates.forEach((state, coordinates) -> {
             Polygon polygon = new Polygon();
@@ -76,10 +78,10 @@ public class USMap extends Application {
         });
     }
 
-    public HashMap<String, ArrayList<double[]>> getStatePolygonCoordinates() {
+    public HashMap<String, ArrayList<double[]>> getStatePolygonCoordinates(String filePath) {
         HashMap<String, ArrayList<double[]>> statePolygonCoordinates = new HashMap<>();
         try {
-            Scanner input = new Scanner(new File("usmap.txt"));
+            Scanner input = new Scanner(new File(filePath));
             String currentState = "";
             while (input.hasNext()) {
                 String s = input.nextLine().strip();
@@ -112,10 +114,10 @@ public class USMap extends Application {
         return statePolygonCoordinates;
     }
 
-    public HashMap<String, String> getStateAbbreviations() {
+    public HashMap<String, String> getStateAbbreviations(String filePath) {
         HashMap<String, String> stateAbbreviations = new HashMap<>();
         try {
-            Scanner input = new Scanner(new File("states.txt"));
+            Scanner input = new Scanner(new File(filePath));
             while (input.hasNext()) {
                 String s = input.nextLine().strip();
                 String[] strings = s.split("\t");
