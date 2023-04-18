@@ -1,5 +1,6 @@
 package com.example.javafx;
 
+
 import javafx.application.Application;
 import javafx.geometry.Bounds;
 import javafx.scene.Scene;
@@ -7,7 +8,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
@@ -16,74 +16,95 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class USMap extends Application {
+public class Demo extends Application
+{
     public static void main(String[] args)
     {
-        // Launch the application.
         launch(args);
     }
+
     @Override
-    public void start(Stage stage) {
-        
+    public void start(Stage stage)
+    {
         final String STATE_ABBV_FILE = "states.txt";
         final String MAP_FILE = "usmap.txt";
         final int MAP_WIDTH = 1300;
-        final int MAP_HEIGHT = 600;
-        final double SCALE = 20.0;
-        final double MAX_LATITUDE = 50.0;
-        final double MIN_LONGITUDE = -130;
-        final int FONT_SIZE = 10;
+        final int MAP_HEIGHT = 800;
+        final double LATITUDE_NORTHEST = 52;
+        final double LONGITUDE_WESTEST = -130;
+        final double SCALE_X = 20;
+        final double SCALE_Y = 25;
 
-        Pane pane = new Pane();
-        Scene scene = new Scene(pane, MAP_WIDTH, MAP_HEIGHT);
-        stage.setTitle("US Map");
-        stage.setScene(scene);
-        stage.show();
-
-        HashMap<String, ArrayList<double[]>> statePolygonCoordinates = getStatePolygonCoordinates(MAP_FILE);
         HashMap<String, String> stateAbbreviations = getStateAbbreviations(STATE_ABBV_FILE);
-
+        HashMap<String, ArrayList<double[]>> statePolygonCoordinates = getStatePolygonCoordinates(MAP_FILE);
+        /**
+        stateAbbreviations.forEach((state, abbreviation) -> {
+            System.out.printf("%s %s \n", state, abbreviation);
+        });
         statePolygonCoordinates.forEach((state, coordinates) -> {
-            Polygon polygon = new Polygon();
+            System.out.println(state);
             for (double[] coordinate : coordinates) {
-                double x = (coordinate[1] - MIN_LONGITUDE) * SCALE;
-                double y = (MAX_LATITUDE - coordinate[0]) * SCALE;
-                polygon.getPoints().addAll(x, y);
+                System.out.printf("%f %f \n", coordinate[0], coordinate[1]);
             }
-            polygon.getPoints().addAll((coordinates.get(0)[1] - MIN_LONGITUDE)* SCALE, (MAX_LATITUDE - coordinates.get(0)[0]) * SCALE);
+        });
+         */
+        Pane pane = new Pane();
+
+        statePolygonCoordinates.forEach( (state, coordinatesList) -> {
+            Polygon polygon = new Polygon();
+            double xFirst = -1;
+            double yFirst = -1;
+            for (double[] coordinates : coordinatesList) {
+                double latitude = coordinates[0] ;
+                double longitude = coordinates[1] ;
+                double x, y;
+                x = (longitude - LONGITUDE_WESTEST) * SCALE_X;
+                y = (LATITUDE_NORTHEST - latitude) * SCALE_Y;
+                polygon.getPoints().addAll(x, y);
+                if (xFirst < 0) {
+                    xFirst = x;
+                    yFirst = y;
+                }
+            }
+            polygon.getPoints().addAll(xFirst, yFirst);
             polygon.setFill(Color.WHITE);
             polygon.setStroke(Color.BLACK);
-            polygon.setStrokeWidth(1);
+            pane.getChildren().add(polygon);
 
-            polygon.setOnMouseClicked(e->{
+            /** display the state abbreviation at the center of the state polygon */
+            double[] center = getCenter(polygon);
+            String abbreviation = stateAbbreviations.get(state);
+            Text abbrevationText = new Text(center[0], center[1], abbreviation);
+            pane.getChildren().add(abbrevationText);
+
+            /** add event to the state polygon */
+            polygon.setOnMouseClicked( e -> {
                 if (e.getButton() == MouseButton.PRIMARY) {
                     polygon.setFill(Color.RED);
                 }
                 else if (e.getButton() == MouseButton.SECONDARY) {
                     polygon.setFill(Color.BLUE);
                 }
-                else {
+                else if (e.getButton() == MouseButton.MIDDLE) {
                     polygon.setFill(Color.WHITE);
                 }
             });
-
-            pane.getChildren().add(polygon);
-
-            String abbreviation = stateAbbreviations.get(state);
-            double[] center = getCenter(polygon);
-            Text text = new Text(center[0], center[1], abbreviation);
-            text.setFont(new Font("Arial", FONT_SIZE));
-            pane.getChildren().add(text);
-
         });
+
+        Scene scene = new Scene(pane, MAP_WIDTH, MAP_HEIGHT);
+        stage.setScene(scene);
+        stage.setTitle("US Map");
+        stage.show();
     }
 
+    /** read the coordinates */
     public HashMap<String, ArrayList<double[]>> getStatePolygonCoordinates(String filePath) {
+        /** key: state name, value: a list of coordinates (latitude and longitude) */
         HashMap<String, ArrayList<double[]>> statePolygonCoordinates = new HashMap<>();
+        String currentState = "";
         try {
             Scanner input = new Scanner(new File(filePath));
-            String currentState = "";
-            while (input.hasNext()) {
+            while (input.hasNextLine()) {
                 String s = input.nextLine().strip();
                 if (Character.isAlphabetic(s.charAt(0))) {
                     currentState = s;
@@ -91,34 +112,31 @@ public class USMap extends Application {
                 }
                 else {
                     String[] coordinatesStrings = s.split(" ");
-                    double[] coordinate = new double[2];
-                    for (int i = 0; i < 2; i++){
-                        coordinate[i] = Double.parseDouble(coordinatesStrings[i]);
+                    double[] coordinates = new double[2];
+                    for (int i = 0; i <= 1; i++) {
+                        coordinates[i] = Double.parseDouble(coordinatesStrings[i]);
                     }
-                    statePolygonCoordinates.get(currentState).add(coordinate);
+                    statePolygonCoordinates.get(currentState).add(coordinates);
                 }
             }
+            input.close();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-
-        /**
-         statePolygonCoordinates.forEach((state, coordinates) -> {
-            System.out.println(state);
-            for (double[] coordinate : coordinates) {
-                System.out.printf("%f %f \n", coordinate[0], coordinate[1]);
-            }
-        });
-        */
         return statePolygonCoordinates;
     }
 
+    /** read the state abbreviations */
     public HashMap<String, String> getStateAbbreviations(String filePath) {
+        /**
+        * @param filePath the file path to load the state abbreviation data
+         * @return a hashmap
+         * */
         HashMap<String, String> stateAbbreviations = new HashMap<>();
         try {
             Scanner input = new Scanner(new File(filePath));
-            while (input.hasNext()) {
+            while (input.hasNextLine()) {
                 String s = input.nextLine().strip();
                 String[] strings = s.split("\t");
                 String state = strings[0];
@@ -127,18 +145,15 @@ public class USMap extends Application {
                     stateAbbreviations.put(state, abbreviation);
                 }
             }
+            input.close();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        /**
-        stateAbbreviations.forEach((state, abbreviation) -> {
-            System.out.printf("%s %s \n", state, abbreviation);
-        });
-         */
         return stateAbbreviations;
     }
 
+    /** get the center of a polygon */
     public double[] getCenter(Polygon polygon) {
         Bounds bounds = polygon.getBoundsInLocal();
         double centerX = (bounds.getMinX() + bounds.getMaxX()) / 2;
@@ -148,5 +163,4 @@ public class USMap extends Application {
         center[1] = centerY;
         return center;
     }
-    
 }
